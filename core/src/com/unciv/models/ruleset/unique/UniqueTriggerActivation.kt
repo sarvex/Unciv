@@ -48,12 +48,12 @@ object UniqueTriggerActivation {
         val tileBasedRandom =
             if (tile != null) Random(tile.position.toString().hashCode())
             else Random(-550) // Very random indeed
-        val ruleSet = civInfo.gameInfo.ruleset
+        val ruleset = civInfo.gameInfo.ruleset
 
         when (unique.type) {
             UniqueType.OneTimeFreeUnit -> {
                 val unitName = unique.params[0]
-                val unit = ruleSet.units[unitName]
+                val unit = ruleset.units[unitName]
                 if ((chosenCity == null && tile == null)
                         || unit == null
                         || unit.isCityFounder() && civInfo.isOneCityChallenger())
@@ -82,7 +82,7 @@ object UniqueTriggerActivation {
             }
             UniqueType.OneTimeAmountFreeUnits -> {
                 val unitName = unique.params[1]
-                val unit = ruleSet.units[unitName]
+                val unit = ruleset.units[unitName]
                 if ((chosenCity == null && tile == null) || unit == null || (unit.isCityFounder() && civInfo.isOneCityChallenger()))
                     return false
 
@@ -122,7 +122,7 @@ object UniqueTriggerActivation {
             UniqueType.OneTimeFreeUnitRuins -> {
                 var unit = civInfo.getEquivalentUnit(unique.params[0])
                 if ( unit.isCityFounder() && civInfo.isOneCityChallenger()) {
-                     val replacementUnit = ruleSet.units.values
+                     val replacementUnit = ruleset.units.values
                          .firstOrNull {
                              it.getMatchingUniques(UniqueType.BuildImprovements)
                                 .any { unique -> unique.params[0] == "Land" }
@@ -177,19 +177,35 @@ object UniqueTriggerActivation {
                 civInfo.addNotification(notificationText, NotificationCategory.General, NotificationIcon.Culture)
                 return true
             }
-            UniqueType.OneTimeAdoptPolicy -> {
-                val policyName = unique.params[0]
-                if (civInfo.policies.isAdopted(policyName)) return false
-                val policy = civInfo.gameInfo.ruleset.policies[policyName] ?: return false
-                civInfo.policies.freePolicies++
-                civInfo.policies.adopt(policy)
+            UniqueType.OneTimeAdoptPolicyOrBelief -> {
+                val policyOrBeliefName = unique.params[0]
 
-                val notificationText = getNotificationText(notification, triggerNotificationText,
-                    "You gain the [$policyName] Policy")
-                    ?: return true
+                if (ruleset.policies.containsKey(policyOrBeliefName)) {
+                    val policy = ruleset.policies[policyOrBeliefName] ?: return false
 
-                civInfo.addNotification(notificationText, NotificationCategory.General, NotificationIcon.Culture)
-                return true
+                    if (civInfo.policies.isAdopted(policyOrBeliefName)) return false
+                    civInfo.policies.freePolicies++
+                    civInfo.policies.adopt(policy)
+
+                    val notificationText = getNotificationText(
+                        notification, triggerNotificationText,
+                        "You gain the [$policyOrBeliefName] Policy"
+                    )
+                        ?: return true
+
+                    civInfo.addNotification(
+                        notificationText,
+                        NotificationCategory.General,
+                        NotificationIcon.Culture
+                    )
+                    return true
+                }
+                if (ruleset.beliefs.containsKey(policyOrBeliefName)){
+                    if (civInfo.religionManager.religionState ==ReligionState.None) return false
+                    val belief = ruleset.beliefs[policyOrBeliefName]!!
+                    civInfo.religionManager.chooseBeliefs(listOf(belief))
+                }
+                return false
             }
             UniqueType.OneTimeEnterGoldenAge, UniqueType.OneTimeEnterGoldenAgeTurns -> {
                 if (unique.type == UniqueType.OneTimeEnterGoldenAgeTurns) civInfo.goldenAges.enterGoldenAge(unique.params[0].toInt())
@@ -292,7 +308,7 @@ object UniqueTriggerActivation {
                 return true
             }
             UniqueType.OneTimeFreeTechRuins -> {
-                val researchableTechsFromThatEra = ruleSet.technologies.values
+                val researchableTechsFromThatEra = ruleset.technologies.values
                     .filter {
                         (it.column!!.era == unique.params[1] || unique.params[1] == "any era")
                                 && civInfo.tech.canBeResearched(it.name)
@@ -344,7 +360,7 @@ object UniqueTriggerActivation {
             UniqueType.OneTimeProvideResources -> {
                 val amount = unique.params[0].toInt()
                 val resourceName = unique.params[1]
-                val resource = ruleSet.tileResources[resourceName] ?: return false
+                val resource = ruleset.tileResources[resourceName] ?: return false
                 if (!resource.isStockpiled()) return false
 
                 civInfo.resourceStockpiles.add(resourceName, amount)
@@ -360,7 +376,7 @@ object UniqueTriggerActivation {
             UniqueType.OneTimeConsumeResources -> {
                 val amount = unique.params[0].toInt()
                 val resourceName = unique.params[1]
-                val resource = ruleSet.tileResources[resourceName] ?: return false
+                val resource = ruleset.tileResources[resourceName] ?: return false
                 if (!resource.isStockpiled()) return false
 
                 civInfo.resourceStockpiles.add(resourceName, -amount)
@@ -389,7 +405,7 @@ object UniqueTriggerActivation {
                 val promotedUnitLocations: MutableList<Vector2> = mutableListOf()
                 for (unit in civInfo.units.getCivUnits()) {
                     if (unit.matchesFilter(filter)
-                        && ruleSet.unitPromotions.values.any {
+                        && ruleset.unitPromotions.values.any {
                             it.name == promotion && unit.type.name in it.unitTypes
                         }
                     ) {

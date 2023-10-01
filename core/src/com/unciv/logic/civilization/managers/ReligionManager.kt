@@ -107,7 +107,9 @@ class ReligionManager : IsPartOfGameInfoSerialization {
             || (religionState == ReligionState.Religion || religionState == ReligionState.EnhancedReligion) // any belief adding outside of great prophet use
 
     fun faithForPantheon(additionalCivs: Int = 0) =
-        civInfo.gameInfo.ruleset.modOptions.constants.pantheonBase + (civInfo.gameInfo.civilizations.count { it.isMajorCiv() && it.religionManager.religion != null } + additionalCivs) * civInfo.gameInfo.ruleset.modOptions.constants.pantheonGrowth
+        civInfo.gameInfo.ruleset.modOptions.constants.pantheonBase +
+            (civInfo.gameInfo.civilizations.count { it.isMajorCiv() && it.religionManager.religion != null } + additionalCivs) *
+                civInfo.gameInfo.ruleset.modOptions.constants.pantheonGrowth
 
     /** Used for founding the pantheon and for each time the player gets additional pantheon beliefs
      * before forming a religion */
