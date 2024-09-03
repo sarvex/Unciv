@@ -181,7 +181,7 @@ jobs:
         uses: gradle/gradle-build-action@v2.4.2
 
       - name: Download JAR
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         # See 'Upload JAR' step in 'build' job
         with:
           name: UncivJar
@@ -216,7 +216,7 @@ jobs:
     steps:
 
       - name: Download packed zips
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
         with:
           name: UncivDeploymentZips
 
@@ -237,7 +237,7 @@ jobs:
     steps:
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
 
       - name: consolidate deploy folder
         run: |
